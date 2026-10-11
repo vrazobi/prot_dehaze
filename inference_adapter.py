@@ -71,7 +71,8 @@ def run_dehazing(image: Image.Image):
 
         client = Client(SPACE_ID, verbose=False)
         try:
-            result = client.predict(tmp_path, api_name="/predict")
+            # result = client.predict(tmp_path, api_name="/predict")
+            result = client.predict(tmp_path, fn_index=0)
         except Exception as first_error:
             # Ask Gradio for endpoint details to aid debugging; do not silently use fake output.
             try:
