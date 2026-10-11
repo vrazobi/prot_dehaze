@@ -107,7 +107,7 @@ def _load_model():
             state_dict = torch.load(
                 checkpoint_path,
                 map_location="cpu",
-                weights_only=False,
+                weights_only=True,
             )
         
         except TypeError:
@@ -121,7 +121,7 @@ def _load_model():
             # Fallback hanya untuk checkpoint AOD-Net dari sumber
             # yang memang sudah diperiksa dan dipercaya.
             if "Weights only load failed" not in str(safe_load_error):
-                raise ('deh biadab')
+                raise ValueError('tolol')
         
             try:
                 state_dict = torch.load(
