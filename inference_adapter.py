@@ -102,10 +102,41 @@ def _load_model():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     try:
         # The public checkpoint is a state_dict, so weights_only=True is preferred.
+       
         try:
-            state_dict = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
-        except TypeError:  # compatibility with older PyTorch releases
-            state_dict = torch.load(checkpoint_path, map_location="cpu")
+            state_dict = torch.load(
+                checkpoint_path,
+                map_location="cpu",
+                weights_only=True,
+            )
+        
+        except TypeError:
+            # Kompatibilitas dengan PyTorch versi lama
+            state_dict = torch.load(
+                checkpoint_path,
+                map_location="cpu",
+            )
+        
+        except Exception as safe_load_error:
+            # Fallback hanya untuk checkpoint AOD-Net dari sumber
+            # yang memang sudah diperiksa dan dipercaya.
+            if "Weights only load failed" not in str(safe_load_error):
+                raise
+        
+            try:
+                state_dict = torch.load(
+                    checkpoint_path,
+                    map_location="cpu",
+                    weights_only=False,
+                )
+            except Exception as legacy_load_error:
+                raise RuntimeError(
+                    "Checkpoint gagal dimuat dengan loader aman maupun "
+                    "loader kompatibilitas. "
+                    f"Safe loader: {safe_load_error}. "
+                    f"Compatibility loader: {legacy_load_error}."
+                ) from legacy_load_error
+
         if isinstance(state_dict, dict) and "state_dict" in state_dict and isinstance(state_dict["state_dict"], dict):
             state_dict = state_dict["state_dict"]
         model = AODNetModel()
