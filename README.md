@@ -1,55 +1,35 @@
-# AI Image Dehazing — Streamlit + AOD-Net
+# AI Image Dehazing — Streamlit + Remote Model API
 
-Prototype UI for an ITB AI Center exhibition, using a public pretrained AOD-Net checkpoint. This app does **not** train a model and does not substitute a filter or sample image for inference.
+## What's different
+This version does not load local PyTorch checkpoints. It sends the uploaded image to a public Gradio/Hugging Face Space and returns the model's actual output. This avoids local checkpoint-version and GPU configuration issues.
 
-## Model provenance
+**Remote model:** [GAN-based Image Dehazing Demo](https://huggingface.co/spaces/saravanaKumarT/gan_dehaze)
 
-- **Model:** AOD-Net (All-in-One Network for Dehazing)
-- **Paper:** Boyi Li et al., *AOD-Net: All-in-One Dehazing Network*, ICCV 2017. https://arxiv.org/abs/1707.06543
-- **Public model/code repository:** https://github.com/Huangshifu628/aod-net
-- **Architecture source:** `net.py` in that repository; the architecture is reproduced in `inference_adapter.py` with the matching parameter names.
-- **Pretrained checkpoint:** `snapshots/dehazer.pth`, downloaded from https://raw.githubusercontent.com/Huangshifu628/aod-net/main/snapshots/dehazer.pth on first inference and cached in a temporary directory.
-- **License:** the repository declares MIT. Preserve attribution, and verify model/checkpoint licensing for your particular exhibition/commercial use.
-- **Version:** repository `main` branch (not pinned to a commit); checkpoint is fetched at runtime. For reproducible scientific use, pin a commit and record the checkpoint SHA256.
-- **Training:** this application uses the published pretrained checkpoint; no training is performed by the app.
+The model's published demo description focuses on satellite optical imagery. General photography results can vary. The API is operated by a third party, so availability, queue times, limits, and endpoints can change.
 
-## Features
-
-- Upload PNG/JPEG/WEBP (up to 10 MB; max 2.5 megapixels for free CPU hosting)
-- Actual AOD-Net inference using PyTorch
-- Before/after images and PNG download
-- Input/output dimensions, input filesize, measured forward-pass time, model load/download time
-- Optional PSNR/SSIM only when a reference image is provided and dimensions match
-- Error messages for invalid upload, missing checkpoint, incompatible weights, and oversized images
-
-## Run locally on Windows PowerShell
+## Run locally
 
 ```powershell
-cd C:\path\to\project
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
+python -m venv .venv
+.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-The first inference downloads the pretrained checkpoint, so the machine needs internet access to `raw.githubusercontent.com`. The UI page may open before the model is downloaded; press **Jalankan dehazing** to load and run it.
+## Publish on Streamlit Community Cloud
 
-## Deploy on Streamlit Community Cloud
+1. Push these files to the root of a GitHub repo.
+2. Create an app at https://share.streamlit.io/
+3. Select the repository, `main` branch, and `app.py` as main file.
+4. Deploy and test with a non-sensitive image.
 
-1. Push `app.py`, `inference_adapter.py`, `metrics.py`, `requirements.txt`, `.streamlit/config.toml`, and this README to the root of a GitHub repository.
-2. In Streamlit Community Cloud, create an app from that repo/branch and set main file to `app.py`.
-3. Deploy. PyTorch installation and free-host resource limits may affect build time and performance.
-4. Test a real hazy image after deployment. A successful page render is not by itself proof that inference works.
-5. If the hosting service cannot download the checkpoint at runtime, manually download the checkpoint from the URL above and adjust `inference_adapter.py` to use a committed or externally hosted local checkpoint, while respecting the source license and repository size limits.
+## Data privacy
+Uploaded images are transmitted to the external model Space for processing. Do not upload private/confidential pictures. This application does not deliberately persist the uploaded file; however, the external service may handle requests under its own policies and temporary storage rules.
 
-## Metrics and benchmark protocol
+## Metrik and claims
+PSNR/SSIM are shown only when the user uploads a reference image with matching dimensions. Matching dimensions alone does not prove it is a valid ground-truth pair. No benchmark results for SOTS/O-HAZE/NH-HAZE/Dense-HAZE are claimed by this starter.
 
-PSNR/SSIM are only shown when the user provides a reference image with matching dimensions. Same dimensions alone do not prove a valid ground-truth pairing. This UI has not independently benchmarked SOTS, O-HAZE, NH-HAZE, or Dense-HAZE. To report benchmark results, use the official paired test split and document image pairing, preprocessing, checkpoint, CPU/GPU, inference timing, peak RAM/VRAM where measurable, and aggregation method.
-
-## Limitations
-
-- AOD-Net is a compact, older dehazing model; results on real-world fog, strong haze, night scenes, or uneven illumination may be limited.
-- Free Streamlit hosting is CPU/RAM constrained; the UI limits input to 2.5 megapixels.
-- No server-side permanent storage is intentionally implemented. Uploaded images are sent to the server for processing and may exist in process memory or hosting temporary infrastructure/logs according to the host's policies. Do not upload confidential images.
-- The app records actual inference timing but does not currently measure peak RAM/VRAM.
+## Operational caveats
+- The public Space can sleep, queue, hit limits, or change its API.
+- `Waktu round-trip API` includes upload/network/queue/server processing/download; it is not pure model inference time.
+- If the API fails, check the linked Space's status and use `client.view_api()` to inspect the current endpoint.
