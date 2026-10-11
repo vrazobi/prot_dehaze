@@ -13,7 +13,7 @@ from inference_adapter import run_dehazing, ModelUnavailableError
 
 APP_TITLE = "AI Image Dehazing"
 MAX_UPLOAD_MB = 10
-ALLOWED_FORMATS = {"PNG", "JPEG", "WEBP"}
+MAX_PIXELS = 2_500_000
 
 st.set_page_config(
     page_title=APP_TITLE,
@@ -52,6 +52,8 @@ with st.sidebar:
     st.caption("Validasi input")
     st.write(f"Format: PNG, JPEG, WEBP")
     st.write(f"Batas file: {MAX_UPLOAD_MB} MB")
+    st.write("Batas resolusi: 2,5 megapiksel")
+    st.caption("Model: AOD-Net pretrained · CPU/GPU otomatis sesuai server")
     st.divider()
     st.caption("Privasi")
     st.write("Gambar diproses oleh server yang menjalankan aplikasi. Starter ini tidak menyimpan gambar secara permanen dengan sengaja; hosting dapat memiliki log/penyimpanan sementara sesuai konfigurasi.")
@@ -86,6 +88,9 @@ with left:
                 if input_image.width < 16 or input_image.height < 16:
                     st.error("Gambar terlalu kecil. Gunakan gambar minimal 16 × 16 piksel.")
                     input_image = None
+                elif input_image.width * input_image.height > MAX_PIXELS:
+                    st.error("Resolusi gambar melebihi 2,5 megapiksel. Resize gambar sebelum upload agar inference CPU gratis tidak kehabisan memori.")
+                    input_image = None
                 else:
                     st.image(input_image, caption="Gambar input", use_container_width=True)
                     st.caption(f"{input_image.width} × {input_image.height} px · {uploaded.size / 1024:.1f} KB")
@@ -113,7 +118,8 @@ with right:
                 with st.spinner("Menjalankan model dehazing…"):
                     start = time.perf_counter()
                     output_image, model_info = run_dehazing(input_image)
-                    elapsed = time.perf_counter() - start
+                    elapsed_total = time.perf_counter() - start
+                    elapsed = (model_info or {}).get("inference_seconds", elapsed_total)
 
                 if not isinstance(output_image, Image.Image):
                     raise TypeError("Adapter model harus mengembalikan PIL.Image.Image.")
@@ -163,7 +169,9 @@ with right:
         m3.metric("Ukuran input", f"{stats.get('file_bytes', 0) / 1024:.1f} KB")
 
         model_info = stats.get("model_info", {})
-        st.caption(f"Model: {model_info.get('name', 'Tidak dilaporkan oleh adapter')} · Device: {model_info.get('device', 'Tidak dilaporkan')}")
+        st.caption(f"Model: {model_info.get('name', 'Tidak dilaporkan')} · Device: {model_info.get('device', 'Tidak dilaporkan')} · Source: {model_info.get('source', 'N/A')}")
+        if model_info.get("model_load_seconds") is not None:
+            st.caption(f"Waktu load/download model (terpisah dari inferensi): {model_info['model_load_seconds']:.2f} s. Model disimpan di cache selama proses server aktif.")
 
         if reference_file is not None:
             try:
@@ -186,10 +194,10 @@ with right:
     else:
         st.info("Hasil akan muncul di sini setelah model pretrained berhasil dijalankan.")
         st.markdown("""
-        **Status model**
+        **Model yang digunakan: AOD-Net**
 
-        Starter UI tersedia, tetapi inference harus dihubungkan ke model pretrained dan checkpoint yang benar-benar kompatibel sebelum demo dipublikasikan.
+        Model pretrained diunduh dari repository publik saat inferensi pertama. Server harus memiliki akses internet untuk mengambil checkpoint; setelah berhasil, checkpoint dicache selama runtime aktif.
         """)
 
 st.divider()
-st.caption("Prototype demonstrasi. Jangan gunakan hasil sebagai bukti ilmiah/forensik tanpa evaluasi dan validasi yang sesuai.")
+st.caption("Model: AOD-Net, ICCV 2017. Hasil dapat berbeda pada haze nyata; benchmark dataset belum dilakukan oleh aplikasi ini. Jangan gunakan sebagai bukti ilmiah/forensik tanpa validasi.")

@@ -1,60 +1,55 @@
-# AI Image Dehazing — Streamlit Starter
+# AI Image Dehazing — Streamlit + AOD-Net
 
-Prototype UI for an ITB AI Center exhibition. This starter deliberately **does not pretend to run AI inference** until the real pretrained model repository and compatible checkpoint are integrated.
+Prototype UI for an ITB AI Center exhibition, using a public pretrained AOD-Net checkpoint. This app does **not** train a model and does not substitute a filter or sample image for inference.
 
-## Current status
+## Model provenance
 
-- [x] Streamlit UI, image upload and format/size validation
-- [x] Before/after layout and PNG download flow (after a model adapter returns output)
-- [x] Inference timing and basic file/dimension metadata
-- [x] Optional PSNR/SSIM when a reference image is supplied and dimensions match
-- [x] Explicit failure when the model is not configured
-- [ ] Real pretrained model/checkpoint integration — required before public demo
-- [ ] Actual benchmark on SOTS, O-HAZE, NH-HAZE, Dense-HAZE
-- [ ] Measured RAM/VRAM and documented license/model provenance
+- **Model:** AOD-Net (All-in-One Network for Dehazing)
+- **Paper:** Boyi Li et al., *AOD-Net: All-in-One Dehazing Network*, ICCV 2017. https://arxiv.org/abs/1707.06543
+- **Public model/code repository:** https://github.com/Huangshifu628/aod-net
+- **Architecture source:** `net.py` in that repository; the architecture is reproduced in `inference_adapter.py` with the matching parameter names.
+- **Pretrained checkpoint:** `snapshots/dehazer.pth`, downloaded from https://raw.githubusercontent.com/Huangshifu628/aod-net/main/snapshots/dehazer.pth on first inference and cached in a temporary directory.
+- **License:** the repository declares MIT. Preserve attribution, and verify model/checkpoint licensing for your particular exhibition/commercial use.
+- **Version:** repository `main` branch (not pinned to a commit); checkpoint is fetched at runtime. For reproducible scientific use, pin a commit and record the checkpoint SHA256.
+- **Training:** this application uses the published pretrained checkpoint; no training is performed by the app.
 
-## Run locally
+## Features
 
-```bash
-python -m venv .venv
-# Windows:
-.venv\Scripts\activate
-# macOS/Linux:
-source .venv/bin/activate
+- Upload PNG/JPEG/WEBP (up to 10 MB; max 2.5 megapixels for free CPU hosting)
+- Actual AOD-Net inference using PyTorch
+- Before/after images and PNG download
+- Input/output dimensions, input filesize, measured forward-pass time, model load/download time
+- Optional PSNR/SSIM only when a reference image is provided and dimensions match
+- Error messages for invalid upload, missing checkpoint, incompatible weights, and oversized images
 
+## Run locally on Windows PowerShell
+
+```powershell
+cd C:\path\to\project
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-The app will start, but inference will report that the model adapter is not configured. This is intentional.
+The first inference downloads the pretrained checkpoint, so the machine needs internet access to `raw.githubusercontent.com`. The UI page may open before the model is downloaded; press **Jalankan dehazing** to load and run it.
 
-## Integrate the actual model
+## Deploy on Streamlit Community Cloud
 
-Edit `inference_adapter.py` and call the model repository's real inference path. Before enabling the demo, verify:
-
-1. Exact model architecture and source repository/commit.
-2. Checkpoint file exists and is the correct checkpoint for that architecture.
-3. Checkpoint loads without missing/unexpected-key errors (or explain expected keys).
-4. Preprocessing, color order, normalization, resizing, and postprocessing match the original implementation.
-5. A single test image runs end-to-end and output is finite, valid, and visually produced by the model.
-6. Record the model name, version/commit, checkpoint provenance, license, device, and measured inference time.
-
-Do not replace inference with a visual filter or a stored sample output.
-
-## Deployment: Streamlit Community Cloud
-
-1. Put the project in a GitHub repository.
-2. Ensure `app.py`, `inference_adapter.py`, `metrics.py`, and `requirements.txt` are at the repository root.
-3. Deploy the repository from Streamlit Community Cloud.
-4. Add model code/checkpoint only if licensing permits and the checkpoint size/resource needs fit the host limits. Otherwise use an appropriately secured external inference service.
-5. Test a real image after deployment; a successful page load is not proof that inference works.
-
-## Privacy
-
-On a hosted deployment, uploaded images are sent to the server running the app for processing. This code does not intentionally persist uploaded images, but temporary memory, hosting logs, crash reports, or platform-level handling may apply. Do not upload confidential images. Review the host's current data-handling terms before public deployment.
+1. Push `app.py`, `inference_adapter.py`, `metrics.py`, `requirements.txt`, `.streamlit/config.toml`, and this README to the root of a GitHub repository.
+2. In Streamlit Community Cloud, create an app from that repo/branch and set main file to `app.py`.
+3. Deploy. PyTorch installation and free-host resource limits may affect build time and performance.
+4. Test a real hazy image after deployment. A successful page render is not by itself proof that inference works.
+5. If the hosting service cannot download the checkpoint at runtime, manually download the checkpoint from the URL above and adjust `inference_adapter.py` to use a committed or externally hosted local checkpoint, while respecting the source license and repository size limits.
 
 ## Metrics and benchmark protocol
 
-PSNR/SSIM are only computed when the user supplies a reference image with matching dimensions. Matching dimensions alone does not prove that the images are a valid ground-truth pair.
+PSNR/SSIM are only shown when the user provides a reference image with matching dimensions. Same dimensions alone do not prove a valid ground-truth pairing. This UI has not independently benchmarked SOTS, O-HAZE, NH-HAZE, or Dense-HAZE. To report benchmark results, use the official paired test split and document image pairing, preprocessing, checkpoint, CPU/GPU, inference timing, peak RAM/VRAM where measurable, and aggregation method.
 
-For dataset evaluation, use the official test split and correct paired ground truth for each dataset. Record checkpoint, preprocessing, input resolution, device, per-image inference time, peak RAM/VRAM where measurable, PSNR/SSIM aggregation method, and failures. Do not claim dataset results until actually measured.
+## Limitations
+
+- AOD-Net is a compact, older dehazing model; results on real-world fog, strong haze, night scenes, or uneven illumination may be limited.
+- Free Streamlit hosting is CPU/RAM constrained; the UI limits input to 2.5 megapixels.
+- No server-side permanent storage is intentionally implemented. Uploaded images are sent to the server for processing and may exist in process memory or hosting temporary infrastructure/logs according to the host's policies. Do not upload confidential images.
+- The app records actual inference timing but does not currently measure peak RAM/VRAM.
