@@ -59,7 +59,7 @@ def _to_image(result) -> Image.Image:
 def run_dehazing(image: Image.Image):
     """Send the input to the hosted public Space and return (PIL image, info)."""
     try:
-        from gradio_client import Client
+        from gradio_client import Client, handle_file
     except ImportError as exc:
         raise DehazingAPIError("Paket gradio_client belum terpasang. Deploy ulang agar requirements.txt dipasang.") from exc
 
@@ -72,7 +72,7 @@ def run_dehazing(image: Image.Image):
         client = Client(SPACE_ID, verbose=False)
         try:
             # result = client.predict(tmp_path, api_name="/predict")
-            result = client.predict(tmp_path, fn_index=0)
+            result = client.predict(handle_file(tmp_path), fn_index=0)
         except Exception as first_error:
             # Ask Gradio for endpoint details to aid debugging; do not silently use fake output.
             try:
