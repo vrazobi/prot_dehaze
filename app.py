@@ -20,7 +20,9 @@ from inference_adapter import (
     MODEL_NAME,
 )
 
-
+st.write("Repo model:", MODEL_DIR)
+st.write("Config ditemukan:", (MODEL_DIR / "config" / "Dataset_NHHAZE_AFINE_8flow_3block_pixel_content.yaml").is_file())
+st.write("Checkpoint path:", MODEL_DIR / "weights" / "best_test_psnr.pth")
 
 from metrics import calculate_psnr_ssim
 
