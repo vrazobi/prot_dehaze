@@ -15,6 +15,57 @@ from inference_adapter import (
 
 from metrics import calculate_psnr_ssim
 
+import gdown
+from pathlib import Path
+
+DRIVE_FOLDER_URL = (
+    "https://drive.google.com/drive/folders/"
+    "1H8gAkak2guCgxrlx53M7c-29pnTh3o51"
+)
+
+DRIVE_DIR = Path("drive_images")
+
+@st.cache_data
+def download_drive_images():
+    DRIVE_DIR.mkdir(exist_ok=True)
+
+    gdown.download_folder(
+        url=DRIVE_FOLDER_URL,
+        output=str(DRIVE_DIR),
+        quiet=True,
+        use_cookies=False,
+    )
+
+    return sorted(
+        p for p in DRIVE_DIR.rglob("*")
+        if p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}
+    )
+
+source = st.radio(
+    "Sumber gambar",
+    ["Upload perangkat", "Google Drive"],
+    horizontal=True,
+)
+
+if source == "Google Drive":
+    try:
+        images = download_drive_images()
+
+        if images:
+            selected = st.selectbox(
+                "Pilih gambar dari Drive",
+                images,
+                format_func=lambda p: p.name,
+            )
+
+            input_image = Image.open(selected).convert("RGB")
+            st.image(input_image, caption=selected.name)
+        else:
+            st.warning("Tidak ditemukan gambar di folder Drive.")
+
+    except Exception as e:
+        st.error(f"Gagal mengambil gambar dari Drive: {e}")
+
 APP_TITLE = "AI Image Dehazing"
 MAX_UPLOAD_MB = 10
 
