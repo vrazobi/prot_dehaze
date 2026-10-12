@@ -1,6 +1,4 @@
 
-"""Local inference adapter for Style Dehaze."""
-
 import os
 import sys
 from functools import lru_cache
@@ -13,15 +11,40 @@ from torchvision import transforms
 from torch import nn
 import gdown
 
+MODEL_NAME = "Style Dehaze (local checkpoint)"
+
+# Root folder tempat inference_adapter.py berada
+REPO_ROOT = Path(__file__).resolve().parent
+
+CONFIG_PATH = Path(
+    os.getenv(
+        "STYLE_DEHAZE_CONFIG",
+        str(
+            REPO_ROOT / "config"
+            / "Dataset_NHHAZE_AFINE_8flow_3block_pixel_content.yaml"
+        ),
+    )
+)
+
 CHECKPOINT_PATH = Path(
     os.getenv(
         "STYLE_DEHAZE_CHECKPOINT",
         str(REPO_ROOT / "weights" / "best_test_psnr.pth"),
     )
 )
-st.write(CHECKPOINT_PATH)
 
-DRIVE_CHECKPOINT_URL = "https://drive.google.com/file/d/1332m5gGXRFGQ8sLbjXYBbmCJagRgTsQj/view?usp=drive_link"
+DRIVE_CHECKPOINT_URL = (
+    "https://drive.google.com/uc?id=1332m5gGXRFGQ8sLbjXYBbmCJagRgTsQj"
+)
+
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+
+class DehazingAPIError(RuntimeError):
+    pass
+
+
 def ensure_checkpoint():
     if CHECKPOINT_PATH.is_file():
         return
@@ -30,16 +53,26 @@ def ensure_checkpoint():
         parents=True, exist_ok=True
     )
 
-    downloaded = gdown.download(
-        url=DRIVE_CHECKPOINT_URL,
-        output=str(CHECKPOINT_PATH),
-        quiet=False,
-        fuzzy=True,
-    )
-
-    if not downloaded or not CHECKPOINT_PATH.is_file():
+    try:
+        downloaded = gdown.download(
+            url=DRIVE_CHECKPOINT_URL,
+            output=str(CHECKPOINT_PATH),
+            quiet=False,
+            fuzzy=True,
+        )
+    except Exception as exc:
         raise DehazingAPIError(
-            "Gagal mengunduh checkpoint dari Google Drive."
+            f"Download checkpoint gagal: {exc}"
+        ) from exc
+
+    if (
+        not downloaded
+        or not CHECKPOINT_PATH.is_file()
+        or CHECKPOINT_PATH.stat().st_size == 0
+    ):
+        raise DehazingAPIError(
+            "Checkpoint gagal diunduh atau file kosong. "
+            "Periksa izin Google Drive."
         )
 
 
