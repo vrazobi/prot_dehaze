@@ -5,48 +5,101 @@ import time
 from PIL import Image, ImageOps, UnidentifiedImageError
 import streamlit as st
 
-from inference_adapter import run_dehazing, DehazingAPIError, MODEL_NAME, MODEL_SOURCE
+from inference_adapter import (
+    run_dehazing,
+    DehazingAPIError,
+    MODEL_NAME,
+    MODEL_SOURCE,
+)
+
+
 from metrics import calculate_psnr_ssim
 
 APP_TITLE = "AI Image Dehazing"
 MAX_UPLOAD_MB = 10
 
 st.set_page_config(page_title=APP_TITLE, page_icon="🌫️", layout="wide")
+
 st.markdown("""
 <style>
-.block-container {max-width: 1180px; padding-top: 1.5rem; padding-bottom: 3rem;}
-.hero {padding: 1.35rem 1.5rem; border-radius: 20px;
-       background: linear-gradient(120deg, rgba(40,75,120,.18), rgba(90,150,170,.10));
-       border: 1px solid rgba(120,140,160,.25); margin-bottom: 1.2rem;}
-div[data-testid="stMetric"] {border: 1px solid rgba(120,140,160,.25); padding: 12px 14px; border-radius: 14px;}
-.stButton > button, .stDownloadButton > button {border-radius: 12px; min-height: 2.8rem;}
+.block-container {
+    max-width: 1180px;
+    padding-top: 1.5rem;
+    padding-bottom: 3rem;
+}
+
+.hero {
+    padding: 1.35rem 1.5rem;
+    border-radius: 20px;
+    background: linear-gradient(
+        120deg,
+        rgba(40,75,120,.18),
+        rgba(90,150,170,.10)
+    );
+    border: 1px solid rgba(120,140,160,.25);
+    margin-bottom: 1.2rem;
+}
+
+div[data-testid="stMetric"] {
+    border: 1px solid rgba(120,140,160,.25);
+    padding: 8px 10px;
+    border-radius: 14px;
+    min-width: 0;
+}
+
+div[data-testid="stMetricLabel"],
+div[data-testid="stMetricLabel"] p,
+div[data-testid="stMetricValue"],
+div[data-testid="stMetricValue"] div {
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+    overflow-wrap: anywhere;
+}
+
+.stCaption,
+[data-testid="stCaptionContainer"] {
+    font-size: 12px !important;
+}
+
+.stButton > button,
+.stDownloadButton > button {
+    border-radius: 12px;
+    min-height: 2.8rem;
+}
 </style>
 """, unsafe_allow_html=True)
+
 
 st.markdown("""
 <div class="hero">
   <div style="font-size:.85rem; letter-spacing:.08em; text-transform:uppercase; opacity:.75;">
     Pusat AI ITB · Prototype
   </div>
-  <h1 style="margin:.35rem 0 .25rem 0;">AI Image Dehazing</h1>
-  <p style="margin:0; opacity:.82;">Upload foto berkabut, proses melalui model dehazing yang di-host secara online, lalu unduh hasilnya.</p>
+  <h1 style="margin:.35rem 0 .25rem 0;">AI Image Dehazer</h1>
+  <p style="margin:0; opacity:.82;">Reduce Haziness in An Image.</p>
 </div>
 """, unsafe_allow_html=True)
 
 with st.sidebar:
-    st.subheader("Model API")
+    st.subheader("Model Dehazing")
     st.write(MODEL_NAME)
-    st.markdown(f"[Sumber model / demo]({MODEL_SOURCE})")
-    st.caption("Inference dilakukan di server eksternal, bukan di laptop atau server Streamlit ini.")
+    st.caption(
+        "Inference dilakukan menggunakan checkpoint "
+        "lokal pada perangkat yang menjalankan aplikasi."
+    )
+
     st.divider()
     st.subheader("Privasi")
-    st.write("Gambar yang diunggah dikirim ke layanan model eksternal untuk diproses. Jangan unggah gambar rahasia atau sensitif.")
-    st.caption("Layanan eksternal dapat memiliki batas penggunaan, antrean, downtime, atau perubahan API.")
+    st.write(
+        "Gambar diproses secara lokal oleh aplikasi. "
+        "Pastikan deployment tidak meneruskan gambar "
+        "ke layanan eksternal."
+    )
 
 left, right = st.columns([1.05, 1], gap="large")
 with left:
     st.subheader("1 · Input gambar")
-    uploaded = st.file_uploader("Pilih gambar atau drag-and-drop", type=["png", "jpg", "jpeg", "webp"])
+    uploaded = st.file_uploader("Pilih gambar atau drag-and-drop maks 10 MB", type=["png", "jpg", "jpeg", "webp"])
     reference_file = st.file_uploader(
         "Ground-truth/reference (opsional; wajib pasangan yang benar-benar cocok)",
         type=["png", "jpg", "jpeg", "webp"], key="reference",
@@ -86,7 +139,7 @@ with right:
             st.session_state.api_result = None
             st.session_state.api_stats = None
             try:
-                with st.spinner("Mengirim gambar ke model dehazing online…"):
+                with st.spinner("Memproses gambar dengan model Style Dehaze..."):
                     started = time.perf_counter()
                     output_image, model_info = run_dehazing(input_image)
                     elapsed = time.perf_counter() - started
@@ -121,9 +174,15 @@ with right:
                            file_name="dehazed_result.png", mime="image/png", use_container_width=True)
         stats = st.session_state.api_stats or {}
         m1, m2, m3 = st.columns(3)
-        m1.metric("Waktu round-trip API", f"{stats.get('elapsed', 0):.2f} s")
-        m2.metric("Dimensi output", f"{output_image.width} × {output_image.height}")
-        m3.metric("Ukuran input", f"{stats.get('input_size', 0) / 1024:.1f} KB")
+        m1.metric("Waktu proses", f"{stats.get('elapsed', 0):.2f} s")
+        m2.metric(
+            "Dimensi output",
+            f"{output_image.width} × {output_image.height} px"
+        )
+        m3.metric(
+            "Ukuran input",
+            f"{stats.get('input_size', 0) / 1024:.1f} KB"
+        )
         st.caption("Waktu yang ditampilkan mencakup pengiriman gambar, antrean/komputasi server, dan pengambilan hasil—bukan murni waktu inferensi GPU.")
         if reference_file is not None:
             try:
