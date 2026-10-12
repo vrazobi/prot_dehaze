@@ -5,18 +5,26 @@ import time
 from PIL import Image, ImageOps, UnidentifiedImageError
 import streamlit as st
 
+
+import sys
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
+MODEL_DIR = BASE_DIR / "style_dehaze-main"
+
+sys.path.insert(0, str(MODEL_DIR))
+
 from inference_adapter import (
     run_dehazing,
     DehazingAPIError,
     MODEL_NAME,
-    MODEL_SOURCE,
 )
+
 
 
 from metrics import calculate_psnr_ssim
 
 import gdown
-from pathlib import Path
 
 DRIVE_FOLDER_URL = (
     "https://drive.google.com/drive/folders/"
