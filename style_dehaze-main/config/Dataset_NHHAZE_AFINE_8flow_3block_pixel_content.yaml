@@ -1,0 +1,58 @@
+job_name: Dataset_NHHAZE_AFINE_8flow_3block_pixel_content
+
+output: ./output/
+
+vgg: ./vgg_normalised.pth
+
+resume:
+
+wandb:
+
+#============ Net Architecture ============
+img_w: 256
+
+img_h: 256
+
+n_flow: 8
+
+n_block: 3
+
+no_lu: False
+
+affine: False
+
+attention: CBAM
+
+#============ Training ============
+stage: 2
+
+batch_size: 1
+
+aug: True
+
+lr: 0.0002
+
+lr_decay: 0.0005
+
+lr_steps: [100]
+
+lr_mults: 0.5
+
+total_epoch: 120
+
+eval: [test]
+
+#============ Loss STAGE 2 ============
+style_weight: 0
+
+content_weight: 1
+
+recon_weight: 0
+
+smooth_weight: 0
+
+scm_weight: 0
+
+p_weight: 1
+
+loss: tv_loss

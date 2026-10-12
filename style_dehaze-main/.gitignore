@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+
+dataset/Dataset_*/
+dataset/Dataset_*
+data/
+output/
+runs/
+wandb/
+
+*.pth
+*.pt
+*.pth.tar
+*.zip
