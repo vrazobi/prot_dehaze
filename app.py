@@ -260,10 +260,11 @@ with right:
                     "input_size": input_size or 0,
                     "output_dims": output_image.size,
                 }
+            
             except DehazingAPIError as exc:
-                st.error("Model API belum bisa memproses gambar. Coba lagi setelah beberapa saat.")
+                st.error("Model Style Dehaze gagal memproses gambar.")
                 st.caption(str(exc))
-                st.markdown(f"Buka [demo model]({MODEL_SOURCE}) untuk mengecek apakah layanannya aktif.")
+
             except Exception as exc:
                 st.error("Pemrosesan gagal.")
                 st.caption(f"Detail: {type(exc).__name__}: {exc}")
