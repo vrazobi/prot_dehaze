@@ -292,15 +292,15 @@ with right:
             f"{stats.get('input_size', 0) / 1024:.1f} KB"
         )
         st.caption("Waktu yang ditampilkan mencakup pengiriman gambar, antrean/komputasi server, dan pengambilan hasil—bukan murni waktu inferensi GPU.")
-        if reference_image is not None:
-            if reference_image.size != output_image.size:
+        if reference_file is not None:
+            if reference_file.size != output_image.size:
                 st.warning(
                     "PSNR/SSIM tidak dihitung karena dimensi "
                     "reference berbeda dari output."
                 )
             else:
                 psnr, ssim = calculate_psnr_ssim(
-                    output_image, reference_image
+                    output_image, reference_file
                 )
         else:
             st.caption("PSNR/SSIM tidak ditampilkan karena ground-truth/reference belum diberikan.")
