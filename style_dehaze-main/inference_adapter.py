@@ -11,16 +11,18 @@ from torchvision import transforms
 from torch import nn
 import gdown
 
+
 MODEL_NAME = "Style Dehaze (local checkpoint)"
 
-# Root folder tempat inference_adapter.py berada
+# File ini berada di dalam folder style_dehaze-main.
 REPO_ROOT = Path(__file__).resolve().parent
 
 CONFIG_PATH = Path(
     os.getenv(
         "STYLE_DEHAZE_CONFIG",
         str(
-            REPO_ROOT / "config"
+            REPO_ROOT
+            / "config"
             / "Dataset_NHHAZE_AFINE_8flow_3block_pixel_content.yaml"
         ),
     )
@@ -57,8 +59,7 @@ def ensure_checkpoint():
         downloaded = gdown.download(
             url=DRIVE_CHECKPOINT_URL,
             output=str(CHECKPOINT_PATH),
-            quiet=False
-            # fuzzy=True,
+            quiet=False,
         )
     except Exception as exc:
         raise DehazingAPIError(
@@ -76,38 +77,6 @@ def ensure_checkpoint():
         )
 
 
-
-MODEL_NAME = "Style Dehaze (local checkpoint)"
-
-# File ini berada di dalam folder style_dehaze-main.
-REPO_ROOT = Path(__file__).resolve().parent
-
-CONFIG_PATH = Path(
-    os.getenv(
-        "STYLE_DEHAZE_CONFIG",
-        str(
-            REPO_ROOT
-            / "config"
-            / "Dataset_NHHAZE_AFINE_8flow_3block_pixel_content.yaml"
-        ),
-    )
-)
-
-CHECKPOINT_PATH = Path(
-    os.getenv(
-        "STYLE_DEHAZE_CHECKPOINT",
-        str(REPO_ROOT / "weights" / "best_test_psnr.pth"),
-    )
-)
-
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-
-
-class DehazingAPIError(RuntimeError):
-    pass
-
-
 def default_device():
     if not torch.cuda.is_available():
         return torch.device("cpu")
@@ -119,6 +88,7 @@ def default_device():
         return torch.device("cpu")
 
     return torch.device("cuda")
+
 
 
 class InferenceModel(nn.Module):
