@@ -57,8 +57,8 @@ def ensure_checkpoint():
         downloaded = gdown.download(
             url=DRIVE_CHECKPOINT_URL,
             output=str(CHECKPOINT_PATH),
-            quiet=False,
-            fuzzy=True,
+            quiet=False
+            # fuzzy=True,
         )
     except Exception as exc:
         raise DehazingAPIError(
