@@ -11,6 +11,37 @@ import torch.nn.functional as F
 from PIL import Image
 from torchvision import transforms
 from torch import nn
+import gdown
+
+CHECKPOINT_PATH = Path(
+    os.getenv(
+        "STYLE_DEHAZE_CHECKPOINT",
+        str(REPO_ROOT / "weights" / "best_test_psnr.pth"),
+    )
+)
+
+DRIVE_CHECKPOINT_URL = "https://drive.google.com/file/d/1332m5gGXRFGQ8sLbjXYBbmCJagRgTsQj/view?usp=drive_link"
+def ensure_checkpoint():
+    if CHECKPOINT_PATH.is_file():
+        return
+
+    CHECKPOINT_PATH.parent.mkdir(
+        parents=True, exist_ok=True
+    )
+
+    downloaded = gdown.download(
+        url=DRIVE_CHECKPOINT_URL,
+        output=str(CHECKPOINT_PATH),
+        quiet=False,
+        fuzzy=True,
+    )
+
+    if not downloaded or not CHECKPOINT_PATH.is_file():
+        raise DehazingAPIError(
+            "Gagal mengunduh checkpoint dari Google Drive."
+        )
+
+
 
 MODEL_NAME = "Style Dehaze (local checkpoint)"
 
@@ -83,7 +114,7 @@ def load_model():
         raise DehazingAPIError(
             f"Config tidak ditemukan: {CONFIG_PATH}"
         )
-
+    ensure_checkpoint()
     if not CHECKPOINT_PATH.is_file():
         raise DehazingAPIError(
             f"Checkpoint tidak ditemukan: {CHECKPOINT_PATH}"
