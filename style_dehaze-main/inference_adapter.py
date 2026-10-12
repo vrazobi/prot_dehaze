@@ -17,8 +17,12 @@ MODEL_NAME = "Style Dehaze (local checkpoint)"
 #     os.getenv("STYLE_DEHAZE_ROOT", str(Path(__file__).resolve().parent))
 # )
 
+<<<<<<< HEAD
 REPO_ROOT = Path(__file__).resolve().parent / "style_dehaze-main"
 print(f"REPO_ROOT: {REPO_ROOT}")
+=======
+REPO_ROOT = Path(__file__).resolve().parent
+>>>>>>> ab56db69ceaf53f770d4cb1304497fa95623571c
 
 CONFIG_PATH = Path(
     os.getenv(

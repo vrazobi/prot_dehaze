@@ -26,16 +26,31 @@ from metrics import calculate_psnr_ssim
 
 import gdown
 
+
+# DRIVE_DIR = Path("drive_images")
+
+
+APP_TITLE = "AI Image Dehazing"
+MAX_UPLOAD_MB = 10
+
+st.set_page_config(page_title=APP_TITLE, page_icon="🌫️", layout="wide")
+
+
+
 DRIVE_FOLDER_URL = (
     "https://drive.google.com/drive/folders/"
     "1H8gAkak2guCgxrlx53M7c-29pnTh3o51"
 )
 
-DRIVE_DIR = Path("drive_images")
+DRIVE_DIR = BASE_DIR / "drive_images"
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
+
 
 @st.cache_data
 def download_drive_images():
-    DRIVE_DIR.mkdir(exist_ok=True)
+    import gdown
+
+    DRIVE_DIR.mkdir(parents=True, exist_ok=True)
 
     gdown.download_folder(
         url=DRIVE_FOLDER_URL,
@@ -46,38 +61,69 @@ def download_drive_images():
 
     return sorted(
         p for p in DRIVE_DIR.rglob("*")
-        if p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}
+        if p.is_file()
+        and p.suffix.lower() in IMAGE_EXTENSIONS
     )
 
-source = st.radio(
-    "Sumber gambar",
-    ["Upload perangkat", "Google Drive"],
-    horizontal=True,
-)
 
-if source == "Google Drive":
+def choose_image(label, key):
+    source = st.radio(
+        label,
+        ["Upload perangkat", "Google Drive"],
+        horizontal=True,
+        key=f"{key}_source",
+    )
+
+    if source == "Upload perangkat":
+        uploaded = st.file_uploader(
+            f"Pilih gambar {label.lower()} (maks. 10 MB)",
+            type=["png", "jpg", "jpeg", "webp"],
+            key=f"{key}_upload",
+        )
+
+        if uploaded is None:
+            return None, None
+
+        if uploaded.size > MAX_UPLOAD_MB * 1024 * 1024:
+            st.error("Ukuran gambar maksimal 10 MB.")
+            return None, None
+
+        try:
+            img = ImageOps.exif_transpose(
+                Image.open(uploaded)
+            ).convert("RGB")
+            return img, uploaded.size
+        except (UnidentifiedImageError, OSError, ValueError):
+            st.error("File bukan gambar yang valid.")
+            return None, None
+
     try:
         images = download_drive_images()
 
-        if images:
-            selected = st.selectbox(
-                "Pilih gambar dari Drive",
-                images,
-                format_func=lambda p: p.name,
+        if not images:
+            st.warning(
+                "Gambar tidak ditemukan. Pastikan folder Drive "
+                "bisa diakses dan berisi gambar."
             )
+            return None, None
 
-            input_image = Image.open(selected).convert("RGB")
-            st.image(input_image, caption=selected.name)
-        else:
-            st.warning("Tidak ditemukan gambar di folder Drive.")
+        selected = st.selectbox(
+            f"Pilih gambar {label.lower()} dari Drive",
+            images,
+            format_func=lambda p: p.name,
+            key=f"{key}_drive",
+        )
 
-    except Exception as e:
-        st.error(f"Gagal mengambil gambar dari Drive: {e}")
+        img = ImageOps.exif_transpose(
+            Image.open(selected)
+        ).convert("RGB")
 
-APP_TITLE = "AI Image Dehazing"
-MAX_UPLOAD_MB = 10
+        return img, selected.stat().st_size
 
-st.set_page_config(page_title=APP_TITLE, page_icon="🌫️", layout="wide")
+    except Exception as exc:
+        st.error(f"Gagal mengambil gambar dari Drive: {exc}")
+        return None, None
+
 
 st.markdown("""
 <style>
@@ -211,7 +257,7 @@ with right:
                 st.session_state.api_stats = {
                     "elapsed": elapsed,
                     "model_info": model_info,
-                    "input_size": uploaded.size if uploaded else 0,
+                    "input_size": input_size or 0,
                     "output_dims": output_image.size,
                 }
             except DehazingAPIError as exc:
@@ -243,19 +289,16 @@ with right:
             f"{stats.get('input_size', 0) / 1024:.1f} KB"
         )
         st.caption("Waktu yang ditampilkan mencakup pengiriman gambar, antrean/komputasi server, dan pengambilan hasil—bukan murni waktu inferensi GPU.")
-        if reference_file is not None:
-            try:
-                reference = ImageOps.exif_transpose(Image.open(reference_file)).convert("RGB")
-                if reference.size != output_image.size:
-                    st.warning(f"PSNR/SSIM tidak dihitung: dimensi reference {reference.size} berbeda dari output {output_image.size}.")
-                else:
-                    psnr, ssim = calculate_psnr_ssim(output_image, reference)
-                    c1, c2 = st.columns(2)
-                    c1.metric("PSNR", f"{psnr:.3f} dB")
-                    c2.metric("SSIM", f"{ssim:.4f}")
-                    st.caption("Pastikan reference benar-benar pasangan ground-truth untuk input, bukan gambar lain dengan dimensi sama.")
-            except Exception as exc:
-                st.warning(f"Metrik tidak dihitung: {exc}")
+        if reference_image is not None:
+            if reference_image.size != output_image.size:
+                st.warning(
+                    "PSNR/SSIM tidak dihitung karena dimensi "
+                    "reference berbeda dari output."
+                )
+            else:
+                psnr, ssim = calculate_psnr_ssim(
+                    output_image, reference_image
+                )
         else:
             st.caption("PSNR/SSIM tidak ditampilkan karena ground-truth/reference belum diberikan.")
     else:
