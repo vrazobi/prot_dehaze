@@ -19,6 +19,7 @@ CHECKPOINT_PATH = Path(
         str(REPO_ROOT / "weights" / "best_test_psnr.pth"),
     )
 )
+st.write(CHECKPOINT_PATH)
 
 DRIVE_CHECKPOINT_URL = "https://drive.google.com/file/d/1332m5gGXRFGQ8sLbjXYBbmCJagRgTsQj/view?usp=drive_link"
 def ensure_checkpoint():
