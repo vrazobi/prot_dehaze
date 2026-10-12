@@ -18,6 +18,7 @@ MODEL_NAME = "Style Dehaze (local checkpoint)"
 # )
 
 REPO_ROOT = Path(__file__).resolve().parent / "style_dehaze-main"
+print(f"REPO_ROOT: {REPO_ROOT}")
 
 CONFIG_PATH = Path(
     os.getenv(
@@ -54,7 +55,7 @@ import sys
 
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
-    
+
 def load_model():
     """Load the local architecture and checkpoint once."""
     if not CONFIG_PATH.is_file():
