@@ -259,7 +259,7 @@ with right:
                 st.session_state.api_stats = {
                     "elapsed": elapsed,
                     "model_info": model_info,
-                    "input_size": input_size or 0,
+                     "input_size": input_image.width * input_image.height * 3,
                     "output_dims": output_image.size,
                 }
             
